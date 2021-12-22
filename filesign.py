@@ -2,21 +2,23 @@
 from bs4 import BeautifulSoup  # 网页解析，获取数据
 import requests
 import unicodedata as ucd
+import xlwt
 
 currentPage = 1
 order = 'EXT'
 pageCount = 1
-
 baseExtSearchUrl = 'https://www.filesignatures.net/index.php?page=search'
+baseUrl = 'https://www.filesignatures.net/index.php?page=all'
 
 
 def main():
-    baseUrl = 'https://www.filesignatures.net/index.php?page=all'
     data = getData(baseUrl)
-    for item in data:
-        print(item.ext)
-        print(item.byte)
-        print(item.desc)
+    # #输出数据
+    # for item in data:
+    #     print(item.ext)
+    #     print(item.byte)
+    #     print(item.desc)
+    saveData(data, 'output.xls')
 
 
 class FileSignature:
@@ -35,7 +37,7 @@ def getData(baseUrl):
     pageOptions = soup.select('#pageList #pageinate #select > option')
     pageCount = pageOptions[-1].text
     ret = []
-    for page in range(1, int(2) + 1):
+    for page in range(1, int(pageCount) + 1):
         print(page)
         page = getPageData(baseUrl, page)
         for t in page:
@@ -62,8 +64,8 @@ def getPageData(baseUrl, page):
             index = 1
             if tempExt == "*":
                 continue
-            #如果上一个搜索的后缀和当前后缀一样，则不必重复搜索同名扩展
-            if tempExt == lastExt: 
+            # 如果上一个搜索的后缀和当前后缀一样，则不必重复搜索同名扩展
+            if tempExt == lastExt:
                 continue
             lastExt = tempExt
             list = getExtData(tempExt)
@@ -155,6 +157,24 @@ def getExtHtml(ext):
     extHtml = requests.get(baseExtSearchUrl, params={
                            'search': ext, 'mode': 'EXT'})
     return extHtml.text
+
+
+def saveData(list, path):
+    print('save.........')
+    book = xlwt.Workbook(encoding="utf-8", style_compression=0)  # 创建workbook对象
+    sheet = book.add_sheet('sign', cell_overwrite_ok=True)  # 创建工作表
+    col = ("Ext", "Byte", "Desc", "Size", "Offest")
+    for i in range(0, 5):
+        sheet.write(0, i, col[i])  # 列名
+    for i in range(0, len(list)):
+        # print("第%d条" %(i+1))       #输出语句，用来测试
+        data = list[i]
+        sheet.write(i+1, 0, data.ext)
+        sheet.write(i+1, 1, data.byte)
+        sheet.write(i+1, 2, data.desc)
+        sheet.write(i+1, 3, data.size)
+        sheet.write(i+1, 4, data.offest)
+    book.save(path)  # 保存
 
 
 if __name__ == "__main__":  # 当程序执行时
