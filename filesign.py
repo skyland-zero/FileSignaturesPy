@@ -1,4 +1,5 @@
 # -*- codeing = utf-8 -*-
+from os import curdir
 from bs4 import BeautifulSoup  # 网页解析，获取数据
 import requests
 import unicodedata as ucd
@@ -19,7 +20,7 @@ def main():
     #     print(item.byte)
     #     print(item.desc)
     saveData(data, 'output.xls')
-
+    saveCsDict(data)
 
 class FileSignature:
     ext = ''
@@ -175,6 +176,54 @@ def saveData(list, path):
         sheet.write(i+1, 3, data.size)
         sheet.write(i+1, 4, data.offest)
     book.save(path)  # 保存
+
+
+def saveCsDict(list):
+    print('save cs......')
+    same=[]
+    current=''
+    data = open('output.cs', 'w+')
+    print('using System.Collections.Generic;', file=data)
+    print('', file=data)
+    print('namespace MagicNumber', file=data)
+    print('{', file=data)
+    print('    public class FileSignature', file=data)
+    print('    {', file=data)
+    print('        public static readonly Dictionary<string, List<MagicNumberRecord>> Default = new Dictionary<string, List<MagicNumberRecord>>', file=data)
+    print('        {', file=data)
+    for item in list:
+        if current == '':
+            current = item.ext
+        if current == item.ext:
+            same.append(item)
+        else:
+            print('            {', file=data)
+            print('                "'+ current.lower() +'", new List<MagicNumberRecord> {', file=data)
+            i = 0
+            l = len(same)
+            for s in same:
+                i+=1
+                bytes = s.byte.split(' ')
+                # print(bytes)
+                byteStr = ''
+                for b in bytes:
+                    if b=='' or b == ' ':
+                        continue
+                    byteStr = byteStr + ' 0x' + b + ','
+                byteStr = byteStr[0:len(byteStr)-1]
+                end= ''
+                if i != l:
+                    end=','
+                print('                    new MagicNumberRecord(){ Number = new byte[] { '+byteStr+' }, Offset = '+str(s.offest)+', Size = '+str(s.size)+' }'+end+'', file=data)
+            print('                }', file=data)
+            print('            },', file=data)
+            #下一个ext
+            current = item.ext
+            same=[]
+            same.append(item)
+    print('        };', file=data)
+    print('    }', file=data)
+    print('}', file=data)
 
 
 if __name__ == "__main__":  # 当程序执行时
